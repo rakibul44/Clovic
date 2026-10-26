@@ -1,0 +1,1 @@
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">@foreach(array_unique($urls) as $url)<url><loc>{{ $url }}</loc></url>@endforeach</urlset>

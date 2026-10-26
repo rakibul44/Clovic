@@ -1,0 +1,1 @@
+<a href="/" class="wordmark brand-mark" aria-label="Clovic home">@if(!empty($store['logo']))<img @class(['original-logo'=>str_ends_with($store['logo'],'clovic-logo-original.png')]) src="{{ Storage::url($store['logo']) }}" alt="{{ $store['brand']??'Clovic' }}" width="220" height="52">@else{{ strtolower($store['brand']??'Clovic') }}<span>®</span>@endif</a>
