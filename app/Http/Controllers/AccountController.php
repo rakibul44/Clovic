@@ -41,6 +41,10 @@ class AccountController extends Controller
             DB::table('wishlist_items')->insert(['wishlist_id' => $id, 'product_id' => $d['product_id'], 'created_at' => now(), 'updated_at' => now()]);
         }
 
+        if ($r->expectsJson()) {
+            return response()->json(['message' => 'Wishlist updated.', 'product_id' => (int) $d['product_id'], 'saved' => DB::table('wishlist_items')->where('wishlist_id', $id)->where('product_id', $d['product_id'])->exists()]);
+        }
+
         return back()->with('success', 'Wishlist updated.');
     }
 }

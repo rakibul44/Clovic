@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
+use App\Services\Settings;
 
 class SeoController extends Controller
 {
@@ -30,6 +31,10 @@ class SeoController extends Controller
 
     public function robots()
     {
+        if (Settings::get('indexing', 'normal') === 'discourage') {
+            return response("User-agent: *\nDisallow: /\n", 200, ['Content-Type' => 'text/plain']);
+        }
+
         return response("User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /account\nDisallow: /cart\nDisallow: /checkout\nDisallow: /order/\nDisallow: /track-order\nDisallow: /wishlist\nDisallow: /login\nDisallow: /register\nDisallow: /forgot-password\nDisallow: /reset-password\nSitemap: ".url('/sitemap.xml')."\n", 200, ['Content-Type' => 'text/plain']);
     }
 }

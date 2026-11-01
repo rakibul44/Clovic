@@ -52,7 +52,7 @@ class MediaManagementTest extends TestCase
         $this->seed();
         StoreSetting::updateOrCreate(['key' => 'logo'], ['value' => 'brand/clovic-logo-original.png']);
         $html = $this->get('http://127.0.0.1:8000/')->assertOk()->getContent();
-        $this->assertEquals(2, substr_count($html, 'src="/storage/brand/clovic-logo-original.png"'));
+        $this->assertEquals(3, substr_count($html, 'src="/storage/brand/clovic-logo-original.png"'));
         $this->assertEquals('/storage/products/example.jpg', Storage::disk('public')->url('products/example.jpg'));
     }
 }

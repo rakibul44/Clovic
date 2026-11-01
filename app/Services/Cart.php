@@ -48,7 +48,21 @@ class Cart
 
     public function lines()
     {
-        return ProductVariant::with('product.images', 'product.category')->whereIn('id', array_keys($this->quantities()))->get()->map(fn ($v) => ['variant' => $v, 'quantity' => (int) $this->quantities()[$v->id], 'total' => $v->product->current_price * (int) $this->quantities()[$v->id]]);
+        $quantities = $this->quantities();
+
+        return ProductVariant::with('product.images', 'product.category')->whereIn('id', array_keys($quantities))->get()->map(fn ($variant) => ['variant' => $variant, 'quantity' => (int) $quantities[$variant->id], 'total' => $variant->current_price * (int) $quantities[$variant->id]]);
+    }
+
+    public function snapshot(): array
+    {
+        $lines = $this->lines();
+
+        return ['count' => $lines->sum('quantity'), 'subtotal' => $lines->sum('total'), 'subtotal_label' => Settings::money($lines->sum('total')), 'items' => $lines->map(function ($line) {
+            $variant = $line['variant'];
+            $product = $variant->product;
+
+            return ['id' => $variant->id, 'name' => $product->name, 'url' => '/product/'.$product->slug, 'image' => $variant->display_image, 'size' => $variant->size, 'color' => $variant->color, 'sku' => $variant->sku, 'quantity' => $line['quantity'], 'max' => min(99, $variant->stock), 'available' => $product->status === 'published' && $product->category->published && $variant->stock > 0, 'unit_price_label' => Settings::money($variant->current_price), 'total_label' => Settings::money($line['total'])];
+        })->values()->all()];
     }
 
     public function subtotal(): int

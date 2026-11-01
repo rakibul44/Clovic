@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
+use App\Services\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +16,7 @@ class StoreController extends Controller
     {
         $bestIds = DB::table('order_items')->join('orders', 'orders.id', '=', 'order_items.order_id')->join('product_variants', 'product_variants.id', '=', 'order_items.product_variant_id')->where('orders.status', 'delivered')->where('orders.payment_status', 'paid')->select('product_variants.product_id', DB::raw('SUM(quantity) as sold'))->groupBy('product_variants.product_id')->orderByDesc('sold')->limit(4)->pluck('product_id');
 
-        return view('home', ['products' => Product::published()->with('images', 'variants', 'category')->latest()->limit(8)->get(), 'featured' => Product::published()->with('images', 'variants', 'category')->where('featured', true)->limit(4)->get(), 'offers' => Product::published()->with('images', 'variants', 'category')->whereNotNull('sale_price')->limit(4)->get(), 'categories' => Category::where('published', true)->get(), 'best' => Product::published()->with('images', 'variants', 'category')->whereIn('id', $bestIds)->get()]);
+        return view('home', ['products' => Product::published()->with('images', 'variants', 'category')->where('new_arrival', true)->latest()->limit(8)->get(), 'featured' => Product::published()->with('images', 'variants', 'category')->where('featured', true)->limit(4)->get(), 'offers' => Product::published()->with('images', 'variants', 'category')->whereNotNull('sale_price')->limit(4)->get(), 'categories' => Category::where('published', true)->orderBy('position')->get(), 'sections' => DB::table('homepage_sections')->where('published', true)->orderBy('position')->orderBy('id')->get(), 'homeFaq' => Page::where('slug', 'faq')->where('published', true)->first(), 'testimonials' => DB::table('reviews')->join('order_items', 'order_items.id', '=', 'reviews.order_item_id')->join('orders', 'orders.id', '=', 'order_items.order_id')->where('reviews.approved', true)->whereColumn('orders.user_id', 'reviews.user_id')->where('orders.status', 'delivered')->where('orders.payment_status', 'paid')->select('reviews.rating', 'reviews.body')->latest('reviews.created_at')->limit(3)->get(), 'best' => Product::published()->where('bestseller', true)->with('images', 'variants', 'category')->whereIn('id', $bestIds)->get()]);
     }
 
     public function shop(Request $request, ?string $slug = null)
@@ -80,7 +81,7 @@ class StoreController extends Controller
         $recent = session('recent', []);
         session(['recent' => array_slice(array_unique([$product->id, ...$recent]), 0, 8)]);
 
-        return view('product', ['product' => $product, 'related' => Product::published()->with('images', 'variants', 'category')->where('category_id', $product->category_id)->whereKeyNot($product->id)->limit(4)->get(), 'recent' => Product::published()->with('images', 'variants', 'category')->whereIn('id', $recent)->whereKeyNot($product->id)->limit(4)->get()]);
+        return view('product', ['approvedReviews' => DB::table('reviews')->join('order_items', 'order_items.id', '=', 'reviews.order_item_id')->join('orders', 'orders.id', '=', 'order_items.order_id')->join('product_variants', 'product_variants.id', '=', 'order_items.product_variant_id')->where('product_variants.product_id', $product->id)->where('reviews.approved', true)->whereColumn('orders.user_id', 'reviews.user_id')->where('orders.status', 'delivered')->where('orders.payment_status', 'paid')->select('reviews.rating', 'reviews.body', 'reviews.reply')->latest('reviews.created_at')->limit(100)->get(), 'product' => $product, 'related' => Product::published()->with('images', 'variants', 'category')->where('category_id', $product->category_id)->whereKeyNot($product->id)->limit(4)->get(), 'recent' => Product::published()->with('images', 'variants', 'category')->whereIn('id', $recent)->whereKeyNot($product->id)->limit(4)->get()]);
     }
 
     public function page(string $slug)
@@ -106,7 +107,7 @@ class StoreController extends Controller
     {
         $r->validate(['q' => 'required|string|min:2|max:100']);
 
-        return Product::published()->where('name', 'like', '%'.$r->q.'%')->limit(6)->get(['name', 'slug']);
+        return Product::published()->with('images', 'category')->where(fn ($query) => $query->where('name', 'like', '%'.$r->q.'%')->orWhereHas('variants', fn ($variants) => $variants->where('sku', 'like', '%'.$r->q.'%')))->limit(6)->get()->map(fn ($product) => ['id' => $product->id, 'name' => $product->name, 'slug' => $product->slug, 'image' => $product->display_image, 'price' => Settings::money($product->current_price)])->values();
     }
 
     private function oldSlug(string $path)

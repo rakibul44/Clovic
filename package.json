@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:ui": "node --test tests/Frontend/shop-state.test.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

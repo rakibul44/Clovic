@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AdminAccess;
 use App\Services\Cart;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -21,14 +22,17 @@ class AuthController extends Controller
 
     public function login(Request $r, Cart $cart)
     {
-        $d = $r->validate(['email' => 'required|email', 'password' => 'required|string']);
-        if (! Auth::attempt($d + ['active' => true], $r->boolean('remember'))) {
+        $d = $r->validate(['email' => 'required|string|max:150', 'password' => 'required|string']);
+        $identifier = trim($d['email']);
+        $field = filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $credentials = [$field => $identifier, 'password' => $d['password'], 'active' => true];
+        if (! Auth::attempt($credentials, $r->boolean('remember'))) {
             return back()->withErrors(['email' => 'The supplied credentials could not be verified.'])->onlyInput('email');
         }
         $r->session()->regenerate();
         $cart->mergeGuest();
 
-        return redirect()->intended('/account');
+        return redirect()->intended(AdminAccess::staff($r->user()) ? '/admin' : '/account');
     }
 
     public function register(Request $r, Cart $cart)

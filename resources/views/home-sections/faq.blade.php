@@ -1,0 +1,1 @@
+@if($homeFaq)<section class="section home-faq"><div class="section-head"><h2>{{ $section->title??'A little help, right here.' }}</h2><a href="{{ $section->link_path??'/faq' }}" class="text-link">{{ $section->link_label??'All FAQs' }} ↗</a></div><p class="preserve">{{ $section->content??Str::limit($homeFaq->content,1200) }}</p></section>@endif

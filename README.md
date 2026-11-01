@@ -51,9 +51,10 @@ All monetary storage and business arithmetic use integer paisa (৳1 = 100). Adm
 
 ```sh
 php artisan test
+npm run test:ui
 npm run build
 ```
 
-See [testing](docs/TESTING.md), [architecture](docs/ARCHITECTURE.md), [deployment and backups](docs/DEPLOYMENT.md), and [launch checklist](docs/LAUNCH.md).
+See the [admin owner guide](docs/ADMIN.md), [testing](docs/TESTING.md), [architecture](docs/ARCHITECTURE.md), [deployment and backups](docs/DEPLOYMENT.md), and [launch checklist](docs/LAUNCH.md).
 
 Cash on Delivery is operational application logic. bKash/Nagad, advertising analytics, automated marketing, courier APIs and real mail delivery are not activated. Email requires verified SMTP settings and `STORE_MAIL_ENABLED=true`. The draft business/legal policies require owner approval. Hostinger account capabilities, the actual domain, real catalog data and external delivery services cannot be verified without access supplied by the owner.

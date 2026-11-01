@@ -8,5 +8,5 @@ class Coupon extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['expires_at' => 'datetime'];
+    protected $casts = ['expires_at' => 'datetime', 'starts_at' => 'datetime'];
 }

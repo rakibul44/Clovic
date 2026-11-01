@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Coupon;
 use App\Models\InventoryMovement;
 use App\Models\Order;
 use App\Models\ProductVariant;
@@ -38,27 +37,26 @@ class Checkout
                 if ($v->product->demo && ! config('store.allow_demo_checkout')) {
                     throw ValidationException::withMessages(['cart' => 'Demonstration products cannot be ordered in this environment.']);
                 }
-                $subtotal += $v->product->current_price * $quantity;
+                $subtotal += $v->current_price * $quantity;
                 $lines[] = [$v, $quantity];
             }
-            $discount = 0;
-            $coupon = null;
-            if (! empty($data['coupon'])) {
-                $coupon = Coupon::where('code', strtoupper($data['coupon']))->lockForUpdate()->first();
-                if (! $coupon || ! $coupon->active || ($coupon->expires_at && $coupon->expires_at->isPast()) || $coupon->used >= $coupon->usage_limit || $subtotal < $coupon->minimum) {
-                    throw ValidationException::withMessages(['coupon' => 'This coupon is not available for this order.']);
-                }
-                $discount = intdiv($subtotal * $coupon->percent, 100);
-            }
-            $delivery = (int) Settings::get($data['area'] === 'inside' ? 'delivery_inside' : 'delivery_outside', $data['area'] === 'inside' ? 8000 : 15000);
+            $pricedLines = collect($lines)->map(fn ($line) => ['variant' => $line[0], 'quantity' => $line[1]]);
+            $pricing = app(CouponPricing::class)->calculate($data['coupon'] ?? null, $pricedLines, $data['phone'], true);
+            $discount = $pricing['discount'];
+            $coupon = $pricing['coupon'];
+            $delivery = Settings::delivery($data['area'], $subtotal - $discount);
             $order = Order::create(collect($data)->only(['name', 'phone', 'email', 'district', 'area', 'address', 'notes', 'idempotency_key'])->all() + ['reference' => 'CLV-'.strtoupper(Str::random(12)), 'checkout_owner' => $owner, 'user_id' => auth()->id(), 'subtotal' => $subtotal, 'delivery' => $delivery, 'discount' => $discount, 'total' => $subtotal + $delivery - $discount]);
+            $eligibleLines = $pricedLines->filter(fn ($line) => ! $coupon || ((! $coupon->product_id || $line['variant']->product_id === $coupon->product_id) && (! $coupon->category_id || $line['variant']->product->category_id === $coupon->category_id)))->count();
             $remainingDiscount = $discount;
             $lineIndex = 0;
             foreach ($lines as [$v,$quantity]) {
-                $lineIndex++;
-                $lineDiscount = $lineIndex === count($lines) ? $remainingDiscount : intdiv($discount * $v->product->current_price * $quantity, $subtotal);
+                $eligible = ! $coupon || ((! $coupon->product_id || $v->product_id === $coupon->product_id) && (! $coupon->category_id || $v->product->category_id === $coupon->category_id));
+                if ($eligible) {
+                    $lineIndex++;
+                }
+                $lineDiscount = ! $eligible ? 0 : ($lineIndex === $eligibleLines ? $remainingDiscount : intdiv($discount * $v->current_price * $quantity, max(1, $pricing['eligible'])));
                 $remainingDiscount -= $lineDiscount;
-                $order->items()->create(['product_variant_id' => $v->id, 'product_name' => $v->product->name, 'sku' => $v->sku, 'size' => $v->size, 'color' => $v->color, 'quantity' => $quantity, 'unit_price' => $v->product->current_price, 'discount' => $lineDiscount]);
+                $order->items()->create(['product_variant_id' => $v->id, 'product_name' => $v->product->name, 'sku' => $v->sku, 'size' => $v->size, 'color' => $v->color, 'quantity' => $quantity, 'unit_cost' => $v->product->cost_price, 'unit_price' => $v->current_price, 'discount' => $lineDiscount]);
                 $changed = ProductVariant::whereKey($v->id)->where('stock', '>=', $quantity)->decrement('stock', $quantity);
                 if (! $changed) {
                     throw ValidationException::withMessages(['cart' => 'Stock changed. Please try again.']);
@@ -67,7 +65,7 @@ class Checkout
             }
             if ($coupon) {
                 $coupon->increment('used');
-                DB::table('coupon_redemptions')->insert(['coupon_id' => $coupon->id, 'order_id' => $order->id, 'created_at' => now(), 'updated_at' => now()]);
+                DB::table('coupon_redemptions')->insert(['customer_key' => $pricing['customer_key'], 'discount' => $discount, 'coupon_id' => $coupon->id, 'order_id' => $order->id, 'created_at' => now(), 'updated_at' => now()]);
             }
             $order->payments()->create(['method' => 'cod', 'status' => 'unpaid', 'amount' => $order->total]);
             $order->history()->create(['status' => 'pending', 'user_id' => auth()->id()]);

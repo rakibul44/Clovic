@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CheckoutRequest;
-use App\Models\Coupon;
 use App\Models\Order;
 use App\Services\Cart;
 use App\Services\Checkout;
+use App\Services\CouponPricing;
 use App\Services\OrderNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CartController extends Controller
 {
@@ -19,10 +20,22 @@ class CartController extends Controller
         return view('cart', ['lines' => $cart->lines(), 'subtotal' => $cart->subtotal()]);
     }
 
+    public function summary(Cart $cart)
+    {
+        return response()->json($cart->snapshot())->header('Cache-Control', 'private, no-store');
+    }
+
     public function update(Request $r, Cart $cart)
     {
-        $d = $r->validate(['variant_id' => 'required|integer|exists:product_variants,id', 'quantity' => 'required|integer|min:0|max:99', 'add' => 'nullable|in:1']);
+        $d = $r->validate(['variant_id' => 'required|integer|exists:product_variants,id', 'quantity' => 'required|integer|min:0|max:99', 'buy_now' => 'nullable|in:1', 'add' => 'nullable|in:1']);
         $cart->set($d['variant_id'], $r->boolean('add') ? min(99, ($cart->quantities()[$d['variant_id']] ?? 0) + $d['quantity']) : $d['quantity']);
+
+        if ($r->expectsJson()) {
+            return response()->json(['message' => 'Shopping bag updated.', 'cart' => $cart->snapshot(), 'redirect' => $r->boolean('buy_now') ? '/checkout' : null]);
+        }
+        if ($r->boolean('buy_now')) {
+            return redirect('/checkout');
+        }
 
         return back()->with('success', 'Shopping bag updated.');
     }
@@ -41,17 +54,18 @@ class CartController extends Controller
 
     private function discount(?string $code, int $subtotal): int
     {
-        if (! $code) {
+        try {
+            return app(CouponPricing::class)->calculate($code, app(Cart::class)->lines(), session('checkout_phone'))['discount'];
+        } catch (ValidationException) {
             return 0;
         }
-        $c = Coupon::where('code', strtoupper($code))->first();
-
-        return $c && $c->active && (! $c->expires_at || $c->expires_at->isFuture()) && $c->used < $c->usage_limit && $subtotal >= $c->minimum ? intdiv($subtotal * $c->percent, 100) : 0;
     }
 
     public function quote(Request $r, Cart $cart)
     {
-        $r->validate(['coupon' => 'nullable|string|max:40']);
+        $r->validate(['coupon' => 'nullable|string|max:40', 'phone' => 'nullable|string|max:30']);
+        app(CouponPricing::class)->calculate($r->coupon, $cart->lines(), $r->phone);
+        session(['checkout_phone' => $r->phone]);
         $discount = $this->discount($r->coupon, $cart->subtotal());
         if ($r->filled('coupon') && ! $discount) {
             return redirect('/checkout')->withInput()->withErrors(['coupon' => 'This coupon is not available for this order.']);

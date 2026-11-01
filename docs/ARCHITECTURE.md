@@ -39,10 +39,22 @@ Published products require a published category. Missing/unpublished records ret
 
 Filters/search/sorting use `noindex,follow` and canonicalize to the unfiltered listing. Pagination uses crawlable links; listing canonical consolidates to its collection root. Private pages have no-store and noindex headers. The sitemap excludes private routes, demos, noindex products and unpublished content. Canonicals and sitemap origin use `APP_URL`; configure the real verified domain. No invented hreflang locales exist.
 
+## Frontend interaction layer
+
+The public layout uses a sticky, dismissible header, database-driven category menu and rich search, a shared Alpine cart store, and an accessible cart drawer. JSON cart mutations use the existing Cart service and return server-calculated quantities/prices; they never create an order. Session locks serialize cart writes. Standard POST forms remain available for fallback submissions. Wishlist JSON writes require authentication and CSRF protection.
+
+Color/size selection and checkout amount previews are isolated in `resources/js/shop-state.js` with JavaScript component tests. The purchase form requires an available exact variant; Buy Now submits to the same validated cart endpoint before redirecting to guest checkout. Checkout and inventory authority remain on the server. Dynamic cart/wishlist content uses private cache policies.
+
+Admin uses an independent Blade shell with a collapsible desktop sidebar and mobile navigation, without storefront cart/footer markup. Homepage sections are ordered records with supported per-section content and image controls; legacy visibility flags remain compatible. AdminAccess and AdminPermission enforce module permissions independently of sidebar visibility. Reports use actual delivered/paid records and restrict unit costs. Approved purchase-verified reviews are public; public review collection remains disabled. See ADMIN.md for role grants and operational workflows.
+
 ## External integrations and boundaries
 
 COD is the sole active payment method. There is no card-data collection and no pretend bKash/Nagad flow. SMTP notifications are off by default. If enabled, transport errors are logged without claiming successful delivery; cached per-order event markers suppress routine repeated sends. SMTP acceptance is not proof of inbox delivery. Delivery time and courier status are staff managed.
 
-Newsletter signup records consent/preferences only. It does not send campaigns. GA4, Meta Pixel, Search Console verification, product feeds, abandoned-cart automation, transactional SMS, provider payments and courier APIs need a separate configured integration. No marketing requests are sent from the frontend. Reviews and blog category relationships have database foundations; verified-review submission/moderation and a separate blog category manager are not exposed in this release. Policies and exact product specifications await owner-supplied content.
+Newsletter signup records consent/preferences only. It does not send campaigns. GA4, Meta Pixel, Search Console verification, product feeds, abandoned-cart automation, transactional SMS, provider payments and courier APIs need a separate configured integration. No marketing requests are sent from the frontend. Reviews and blog category relationships have database foundations; public verified-review submission and a separate blog category manager are not exposed in this release. The admin review moderator only approves records linked to that customer’s delivered, paid purchase. Policies and exact product specifications await owner-supplied content.
 
 Database cache locks serialize notification attempts. External mail has unavoidable delivery ambiguity if a process fails after the provider accepts mail but before the cache marker is saved; use a provider idempotency API/outbox for stricter delivery guarantees.
+
+## Admin extensions
+
+Products are soft deleted and restored as drafts. Variant price overrides are recalculated by Cart and Checkout. Item snapshots include optional unit cost. CouponPricing applies fixed/percentage discounts to eligible product/category lines, with time, total and normalized-phone limits under the checkout coupon lock. Delivery uses the discounted subtotal for an optional free-shipping threshold. All monetary arithmetic remains integer paisa. Manual shipment records and payment references remain independent of fulfillment transitions. The additive migration does not rewrite existing orders or catalog records.

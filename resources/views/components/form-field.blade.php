@@ -1,0 +1,4 @@
+@props(['name','label','type'=>'text','required'=>false,'value'=>null,'optional'=>false])
+<label class="form-field" for="field-{{ $name }}"><span>{{ $label }} @if($optional)<small>(optional)</small>@endif</span>
+@if($type==='textarea')<textarea id="field-{{ $name }}" name="{{ $name }}" @required($required) @if($errors->has($name))aria-invalid="true" aria-describedby="error-{{ $name }}"@endif {{ $attributes }}>{{ old($name,$value) }}</textarea>@else<input id="field-{{ $name }}" name="{{ $name }}" type="{{ $type }}" value="{{ $type==='password'?'':old($name,$value) }}" @required($required) @if($errors->has($name))aria-invalid="true" aria-describedby="error-{{ $name }}"@endif {{ $attributes }}>@endif
+@error($name)<span id="error-{{ $name }}" class="field-error" role="alert">{{ $message }}</span>@enderror</label>
