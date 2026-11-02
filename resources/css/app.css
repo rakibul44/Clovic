@@ -4557,3 +4557,46 @@ td small {
 body:not(.admin-body) svg.lucide {
     stroke-width: 2.4;
 }
+
+/* Keep pagination readable within the store's light theme. */
+.clovic-pagination {
+    margin-top: 32px;
+}
+.clovic-pagination a,
+.clovic-pagination span.inline-flex {
+    color: #20211f;
+    background: #fff;
+    border-color: #d6d9d0;
+    font-weight: 700;
+    min-height: 42px;
+}
+.clovic-pagination p {
+    color: #555b4e;
+}
+.clovic-pagination [aria-current="page"] > span {
+    color: #fff;
+    background: #48513e;
+    border-color: #48513e;
+}
+.clovic-pagination [aria-disabled="true"] > span,
+.clovic-pagination span.cursor-not-allowed {
+    color: #74796f;
+    background: #efefe9;
+    border-color: #d6d9d0;
+}
+.clovic-pagination a:hover {
+    color: #20211f;
+    background: #e5e9df;
+    border-color: #a8b29c;
+}
+.clovic-pagination a:focus-visible {
+    outline: 3px solid #66725a;
+    outline-offset: 3px;
+    position: relative;
+    z-index: 1;
+}
+.clovic-pagination svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
