@@ -23,6 +23,28 @@ class Settings
 
     public static function money(int $amount): string
     {
-        return '৳'.number_format($amount / 100, $amount % 100 ? 2 : 0);
+        return 'TK '.number_format($amount / 100, $amount % 100 ? 2 : 0);
+    }
+
+    public static function decimal(?int $amount): ?string
+    {
+        if ($amount === null) {
+            return null;
+        }
+
+        return ($amount < 0 ? '-' : '').intdiv(abs($amount), 100).'.'.str_pad((string) (abs($amount) % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    public static function auditAmounts(mixed $value, ?string $key = null): mixed
+    {
+        $money = ['price', 'sale_price', 'cost_price', 'price_override', 'amount', 'minimum', 'maximum_discount', 'subtotal', 'delivery', 'discount', 'total', 'unit_price', 'unit_cost', 'delivery_inside', 'delivery_outside', 'free_shipping_threshold'];
+        if (is_array($value)) {
+            return collect($value)->map(fn ($item, $field) => self::auditAmounts($item, (string) $field))->all();
+        }
+        if ($value !== null && in_array($key, $money, true) && is_numeric($value)) {
+            return self::money((int) $value);
+        }
+
+        return $value;
     }
 }

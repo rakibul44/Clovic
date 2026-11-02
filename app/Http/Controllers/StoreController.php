@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\BlogPost;
+use App\Models\BrandPhoto;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
+use App\Services\MoneyInput;
 use App\Services\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,12 +18,12 @@ class StoreController extends Controller
     {
         $bestIds = DB::table('order_items')->join('orders', 'orders.id', '=', 'order_items.order_id')->join('product_variants', 'product_variants.id', '=', 'order_items.product_variant_id')->where('orders.status', 'delivered')->where('orders.payment_status', 'paid')->select('product_variants.product_id', DB::raw('SUM(quantity) as sold'))->groupBy('product_variants.product_id')->orderByDesc('sold')->limit(4)->pluck('product_id');
 
-        return view('home', ['products' => Product::published()->with('images', 'variants', 'category')->where('new_arrival', true)->latest()->limit(8)->get(), 'featured' => Product::published()->with('images', 'variants', 'category')->where('featured', true)->limit(4)->get(), 'offers' => Product::published()->with('images', 'variants', 'category')->whereNotNull('sale_price')->limit(4)->get(), 'categories' => Category::where('published', true)->orderBy('position')->get(), 'sections' => DB::table('homepage_sections')->where('published', true)->orderBy('position')->orderBy('id')->get(), 'homeFaq' => Page::where('slug', 'faq')->where('published', true)->first(), 'testimonials' => DB::table('reviews')->join('order_items', 'order_items.id', '=', 'reviews.order_item_id')->join('orders', 'orders.id', '=', 'order_items.order_id')->where('reviews.approved', true)->whereColumn('orders.user_id', 'reviews.user_id')->where('orders.status', 'delivered')->where('orders.payment_status', 'paid')->select('reviews.rating', 'reviews.body')->latest('reviews.created_at')->limit(3)->get(), 'best' => Product::published()->where('bestseller', true)->with('images', 'variants', 'category')->whereIn('id', $bestIds)->get()]);
+        return view('home', ['brandPhotos' => BrandPhoto::where('published', true)->orderBy('position')->orderBy('id')->limit(6)->get(), 'products' => Product::published()->with('images', 'variants', 'category')->where('new_arrival', true)->latest()->limit(8)->get(), 'featured' => Product::published()->with('images', 'variants', 'category')->where('featured', true)->limit(4)->get(), 'offers' => Product::published()->with('images', 'variants', 'category')->whereNotNull('sale_price')->limit(4)->get(), 'categories' => Category::where('published', true)->orderBy('position')->get(), 'sections' => DB::table('homepage_sections')->where('published', true)->orderBy('position')->orderBy('id')->get(), 'homeFaq' => Page::where('slug', 'faq')->where('published', true)->first(), 'testimonials' => DB::table('reviews')->join('order_items', 'order_items.id', '=', 'reviews.order_item_id')->join('orders', 'orders.id', '=', 'order_items.order_id')->where('reviews.approved', true)->whereColumn('orders.user_id', 'reviews.user_id')->where('orders.status', 'delivered')->where('orders.payment_status', 'paid')->select('reviews.rating', 'reviews.body')->latest('reviews.created_at')->limit(3)->get(), 'best' => Product::published()->where('bestseller', true)->with('images', 'variants', 'category')->whereIn('id', $bestIds)->get()]);
     }
 
     public function shop(Request $request, ?string $slug = null)
     {
-        $data = $request->validate(['q' => 'nullable|string|max:100', 'category' => 'nullable|integer|exists:categories,id', 'min' => 'nullable|integer|min:0|max:1000000', 'max' => 'nullable|integer|min:0|max:1000000', 'size' => 'nullable|string|max:30', 'color' => 'nullable|string|max:50', 'available' => 'nullable|in:1', 'sort' => 'nullable|in:newest,price_asc,price_desc,popularity', 'page' => 'nullable|integer|min:1|max:10000']);
+        $data = $request->validate(['q' => 'nullable|string|max:100', 'category' => 'nullable|integer|exists:categories,id', 'min' => 'nullable|numeric|decimal:0,2|min:0|max:1000000', 'max' => 'nullable|numeric|decimal:0,2|min:0|max:1000000', 'size' => 'nullable|string|max:30', 'color' => 'nullable|string|max:50', 'available' => 'nullable|in:1', 'sort' => 'nullable|in:newest,price_asc,price_desc,popularity', 'page' => 'nullable|integer|min:1|max:10000']);
         $collection = in_array($slug, ['new-arrivals', 'sale'], true) ? $slug : null;
         $category = $slug && ! $collection ? Category::where('slug', $slug)->where('published', true)->first() : null;
         if ($slug && ! $category && ! $collection) {
@@ -47,10 +49,10 @@ class StoreController extends Controller
             $q->where(fn ($b) => $b->where('name', 'like', '%'.$data['q'].'%')->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', '%'.$data['q'].'%')));
         }
         if (isset($data['min'])) {
-            $q->whereRaw('COALESCE(sale_price,price) >= ?', [$data['min'] * 100]);
+            $q->whereRaw('COALESCE(sale_price,price) >= ?', [MoneyInput::parse($data['min'], 'min')]);
         }
         if (isset($data['max'])) {
-            $q->whereRaw('COALESCE(sale_price,price) <= ?', [$data['max'] * 100]);
+            $q->whereRaw('COALESCE(sale_price,price) <= ?', [MoneyInput::parse($data['max'], 'max')]);
         }
         if (! empty($data['size']) || ! empty($data['color']) || ! empty($data['available'])) {
             $q->whereHas('variants', function ($v) use ($data) {

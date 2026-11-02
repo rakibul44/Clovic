@@ -27,7 +27,7 @@ class StorefrontExperienceTest extends TestCase
     public function test_search_suggestions_match_sku_and_return_images_and_real_prices(): void
     {
         $variant = $this->variant();
-        $this->getJson('/search-suggestions?q=STYLE-NAVY')->assertOk()->assertJsonPath('0.name', 'Considered polo')->assertJsonPath('0.price', '৳1,200')->assertJsonStructure([['id', 'name', 'slug', 'image', 'price']]);
+        $this->getJson('/search-suggestions?q=STYLE-NAVY')->assertOk()->assertJsonPath('0.name', 'Considered polo')->assertJsonPath('0.price', 'TK 1,200')->assertJsonStructure([['id', 'name', 'slug', 'image', 'price']]);
         $variant->product->update(['status' => 'draft']);
         $this->getJson('/search-suggestions?q=STYLE-NAVY')->assertOk()->assertExactJson([]);
     }
@@ -36,7 +36,7 @@ class StorefrontExperienceTest extends TestCase
     {
         $variant = $this->variant();
         $this->postJson('/cart', ['variant_id' => $variant->id, 'quantity' => 2, 'add' => 1, 'price' => 1, 'subtotal' => 1])->assertOk()->assertJsonPath('cart.count', 2)->assertJsonPath('cart.subtotal', 240000)->assertJsonPath('cart.items.0.size', 'M')->assertJsonPath('redirect', null);
-        $this->getJson('/cart/summary')->assertOk()->assertJsonPath('count', 2)->assertJsonPath('subtotal_label', '৳2,400');
+        $this->getJson('/cart/summary')->assertOk()->assertJsonPath('count', 2)->assertJsonPath('subtotal_label', 'TK 2,400');
         $this->postJson('/cart', ['variant_id' => $variant->id, 'quantity' => 5])->assertUnprocessable()->assertJsonValidationErrors('cart');
         $this->getJson('/cart/summary')->assertJsonPath('count', 2);
         $this->postJson('/cart', ['variant_id' => $variant->id, 'quantity' => 0])->assertOk()->assertJsonPath('cart.count', 0)->assertJsonPath('cart.items', []);

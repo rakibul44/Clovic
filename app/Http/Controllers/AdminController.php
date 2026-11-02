@@ -14,8 +14,10 @@ use App\Models\ProductVariant;
 use App\Models\StoreSetting;
 use App\Models\User;
 use App\Services\AdminAccess;
+use App\Services\MoneyInput;
 use App\Services\OrderNotifier;
 use App\Services\OrderWorkflow;
+use App\Services\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -56,7 +58,7 @@ class AdminController extends Controller
     public function saveProduct(Request $r, ?int $id = null)
     {
         $product = $id ? Product::withTrashed()->findOrFail($id) : new Product;
-        $d = $r->validate(['name' => 'required|string|max:150', 'slug' => ['required', 'alpha_dash', 'max:150', Rule::unique('products')->ignore($id)], 'category_id' => 'required|exists:categories,id', 'description' => 'required|string|max:10000', 'fabric' => 'nullable|string|max:2000', 'fit' => 'nullable|string|max:2000', 'care' => 'nullable|string|max:2000', 'price' => 'required|integer|min:1|max:100000000', 'sale_price' => 'nullable|integer|min:1|lte:price', 'status' => 'required|in:draft,published,archived', 'featured' => 'nullable|boolean', 'new_arrival' => 'nullable|boolean', 'demo' => 'nullable|boolean', 'noindex' => 'nullable|boolean', 'seo_title' => 'nullable|string|max:160', 'meta_description' => 'nullable|string|max:320', 'variants' => 'required|array|min:1|max:100', 'variants.*.sku' => 'required|string|max:100|distinct', 'variants.*.size' => 'required|string|max:30', 'variants.*.color' => 'required|string|max:50', 'variants.*.stock' => 'required|integer|min:0|max:1000000', 'variants.*.low_stock_threshold' => 'required|integer|min:0|max:10000', 'images' => 'nullable|array|max:8', 'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:4096|dimensions:max_width=8000,max_height=8000', 'og_image_id' => 'nullable|integer', 'image_alt' => 'nullable|string|max:200', 'image_positions' => 'nullable|array', 'image_positions.*' => 'integer|min:0|max:1000', 'primary_image_id' => 'nullable|integer', 'short_description' => 'nullable|string|max:1000', 'brand' => 'nullable|string|max:100', 'canonical_url' => 'nullable|url:https|max:250', 'cost_price' => 'nullable|integer|min:0|max:100000000', 'bestseller' => 'nullable|boolean', 'variants.*.price_override' => 'nullable|integer|min:1|max:100000000', 'variants.*.image_id' => 'nullable|integer', 'variants.*.color_hex' => ['nullable', 'regex:/^#[a-fA-F0-9]{6}$/'], 'image_alts' => 'nullable|array', 'image_alts.*' => 'nullable|string|max:200', 'delete_images' => 'nullable|array', 'delete_images.*' => 'integer']);
+        $d = MoneyInput::validate($r, ['price', 'sale_price', 'cost_price', 'variants.*.price_override'], ['name' => 'required|string|max:150', 'slug' => ['required', 'alpha_dash', 'max:150', Rule::unique('products')->ignore($id)], 'category_id' => 'required|exists:categories,id', 'description' => 'required|string|max:10000', 'fabric' => 'nullable|string|max:2000', 'fit' => 'nullable|string|max:2000', 'care' => 'nullable|string|max:2000', 'price' => 'required|integer|min:1|max:100000000', 'sale_price' => 'nullable|integer|min:1|lte:price', 'status' => 'required|in:draft,published,archived', 'featured' => 'nullable|boolean', 'new_arrival' => 'nullable|boolean', 'demo' => 'nullable|boolean', 'noindex' => 'nullable|boolean', 'seo_title' => 'nullable|string|max:160', 'meta_description' => 'nullable|string|max:320', 'variants' => 'required|array|min:1|max:100', 'variants.*.sku' => 'required|string|max:100|distinct', 'variants.*.size' => 'required|string|max:30', 'variants.*.color' => 'required|string|max:50', 'variants.*.stock' => 'required|integer|min:0|max:1000000', 'variants.*.low_stock_threshold' => 'required|integer|min:0|max:10000', 'images' => 'nullable|array|max:8', 'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:4096|dimensions:max_width=8000,max_height=8000', 'og_image_id' => 'nullable|integer', 'image_alt' => 'nullable|string|max:200', 'image_positions' => 'nullable|array', 'image_positions.*' => 'integer|min:0|max:1000', 'primary_image_id' => 'nullable|integer', 'short_description' => 'nullable|string|max:1000', 'brand' => 'nullable|string|max:100', 'canonical_url' => 'nullable|url:https|max:250', 'cost_price' => 'nullable|integer|min:0|max:100000000', 'bestseller' => 'nullable|boolean', 'variants.*.price_override' => 'nullable|integer|min:1|max:100000000', 'variants.*.image_id' => 'nullable|integer', 'variants.*.color_hex' => ['nullable', 'regex:/^#[a-fA-F0-9]{6}$/'], 'image_alts' => 'nullable|array', 'image_alts.*' => 'nullable|string|max:200', 'delete_images' => 'nullable|array', 'delete_images.*' => 'integer']);
         abort_if($r->has('cost_price') && ! AdminAccess::can($r->user(), 'cost'), 403);
         if ($r->filled('canonical_url') && parse_url($r->canonical_url, PHP_URL_HOST) !== parse_url(config('app.url'), PHP_URL_HOST)) {
             throw ValidationException::withMessages(['canonical_url' => 'Use a canonical URL on the configured store domain.']);
@@ -162,11 +164,11 @@ class AdminController extends Controller
     {
         return response()->streamDownload(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['name', 'slug', 'category_id', 'price', 'sale_price', 'status', 'description', 'sku', 'size', 'color', 'stock']);
+            fputcsv($out, ['name', 'slug', 'category_id', 'price_bdt', 'sale_price_bdt', 'status', 'description', 'sku', 'size', 'color', 'stock']);
             ProductVariant::with('product')->chunkById(200, function ($variants) use ($out) {
                 foreach ($variants as $v) {
                     $p = $v->product;
-                    fputcsv($out, array_map(fn ($s) => is_string($s) && preg_match('/^[=+@\-]/', $s) ? "'".$s : $s, [$p->name, $p->slug, $p->category_id, $p->price, $p->sale_price, $p->status, $p->description, $v->sku, $v->size, $v->color, $v->stock]));
+                    fputcsv($out, array_map(fn ($s) => is_string($s) && preg_match('/^[=+@\-]/', $s) ? "'".$s : $s, [$p->name, $p->slug, $p->category_id, Settings::decimal($p->price), Settings::decimal($p->sale_price), $p->status, $p->description, $v->sku, $v->size, $v->color, $v->stock]));
                 }
             });
             fclose($out);
@@ -179,13 +181,22 @@ class AdminController extends Controller
         $file = fopen($r->file('file')->path(), 'r');
         $header = fgetcsv($file);
         $expected = ['name', 'slug', 'category_id', 'price', 'sale_price', 'status', 'description', 'sku', 'size', 'color', 'stock'];
-        abort_unless($header === $expected, 422, 'Use the exported CSV column layout.');
+        $bdtHeader = $expected;
+        $bdtHeader[3] = 'price_bdt';
+        $bdtHeader[4] = 'sale_price_bdt';
+        $bdt = $header === $bdtHeader;
+        abort_unless($bdt || $header === $expected, 422, 'Use the exported CSV column layout with BDT prices.');
         $rows = [];
         while (($row = fgetcsv($file)) !== false) {
             if (count($row) !== count($header)) {
                 abort(422, 'Malformed CSV row.');
             }
-            $rows[] = array_combine($header, $row);
+            $entry = array_combine($expected, $row);
+            if ($bdt) {
+                $entry['price'] = MoneyInput::parse($entry['price'], 'price_bdt');
+                $entry['sale_price'] = $entry['sale_price'] === '' ? null : MoneyInput::parse($entry['sale_price'], 'sale_price_bdt');
+            }
+            $rows[] = $entry;
             if (count($rows) > 1000) {
                 abort(422, 'Limit imports to 1,000 variants.');
             }
@@ -193,7 +204,7 @@ class AdminController extends Controller
         fclose($file);
         DB::transaction(function () use ($rows) {
             foreach ($rows as $row) {
-                $data = validator($row, ['name' => 'required|string|max:150', 'slug' => 'required|alpha_dash|max:150', 'category_id' => 'required|exists:categories,id', 'price' => 'required|integer|min:1|max:100000000', 'sale_price' => 'nullable|integer|min:1|lte:price', 'status' => 'required|in:draft,published,archived', 'description' => 'required|string|max:10000', 'sku' => 'required|string|max:100', 'size' => 'required|string|max:30', 'color' => 'required|string|max:50', 'stock' => 'required|integer|min:0|max:1000000'])->validate();
+                $data = MoneyInput::validate(new Request($row), ['price', 'sale_price'], ['name' => 'required|string|max:150', 'slug' => 'required|alpha_dash|max:150', 'category_id' => 'required|exists:categories,id', 'price' => 'required|integer|min:1|max:100000000', 'sale_price' => 'nullable|integer|min:1|lte:price', 'status' => 'required|in:draft,published,archived', 'description' => 'required|string|max:10000', 'sku' => 'required|string|max:100', 'size' => 'required|string|max:30', 'color' => 'required|string|max:50', 'stock' => 'required|integer|min:0|max:1000000']);
                 $data['sale_price'] = $data['sale_price'] === '' ? null : $data['sale_price'];
                 $p = Product::updateOrCreate(['slug' => $data['slug']], collect($data)->except(['sku', 'size', 'color', 'stock'])->all());
                 $v = ProductVariant::where('sku', $data['sku'])->lockForUpdate()->first();
@@ -299,7 +310,7 @@ class AdminController extends Controller
             $rules['remove_image'] = 'nullable|boolean';
             $rules['image_upload'] = 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096';
         }
-        $d = $r->validate($rules);
+        $d = MoneyInput::validate($r, $resource === 'coupons' ? ['amount', 'minimum', 'maximum_discount'] : [], $rules);
         unset($d['image_upload'],$d['remove_image']);
         foreach (['published', 'active'] as $flag) {
             if (array_key_exists($flag, $rules)) {
@@ -361,7 +372,7 @@ class AdminController extends Controller
         $r->validate(['navigation' => 'nullable|json|max:5000']);
         $navigation = json_decode($r->input('navigation', '[]'), true);
         validator(['links' => $navigation], ['links' => 'array|max:8', 'links.*.label' => 'required|string|max:30', 'links.*.path' => ['required', 'string', 'max:200', 'regex:#^/(?!/)[a-zA-Z0-9/?&=_%.-]*$#']])->validate();
-        $d = $r->validate(['remove_hero_image' => 'nullable|boolean', 'remove_logo' => 'nullable|boolean', 'navigation' => 'nullable|json|max:5000', 'brand_intro' => 'nullable|string|max:2000', 'hero_second_line' => 'required|string|max:100', 'show_new_arrivals' => 'nullable|in:0,1', 'show_best_sellers' => 'nullable|in:0,1', 'show_featured' => 'required|in:0,1', 'show_offers' => 'required|in:0,1', 'brand' => 'required|string|max:100', 'announcement' => 'nullable|string|max:250', 'delivery_inside' => 'required|integer|min:0|max:1000000', 'delivery_outside' => 'required|integer|min:0|max:1000000', 'email' => 'nullable|email|max:150', 'phone' => 'nullable|string|max:30', 'facebook' => 'nullable|url:https|max:250', 'instagram' => 'nullable|url:https|max:250', 'whatsapp' => 'nullable|url:https|max:250', 'hero_title' => 'required|string|max:150', 'hero_text' => 'required|string|max:1000', 'hero_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096', 'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', 'restore_stock' => 'required|in:0,1', 'seo_title' => 'nullable|string|max:160', 'meta_description' => 'nullable|string|max:320', 'low_stock_threshold' => 'required|integer|min:0|max:10000']);
+        $d = MoneyInput::validate($r, ['delivery_inside', 'delivery_outside'], ['remove_hero_image' => 'nullable|boolean', 'remove_logo' => 'nullable|boolean', 'navigation' => 'nullable|json|max:5000', 'brand_intro' => 'nullable|string|max:2000', 'hero_second_line' => 'required|string|max:100', 'show_new_arrivals' => 'nullable|in:0,1', 'show_best_sellers' => 'nullable|in:0,1', 'show_featured' => 'required|in:0,1', 'show_offers' => 'required|in:0,1', 'brand' => 'required|string|max:100', 'announcement' => 'nullable|string|max:250', 'delivery_inside' => 'required|integer|min:0|max:1000000', 'delivery_outside' => 'required|integer|min:0|max:1000000', 'email' => 'nullable|email|max:150', 'phone' => 'nullable|string|max:30', 'facebook' => 'nullable|url:https|max:250', 'instagram' => 'nullable|url:https|max:250', 'whatsapp' => 'nullable|url:https|max:250', 'hero_title' => 'required|string|max:150', 'hero_text' => 'required|string|max:1000', 'hero_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096', 'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', 'restore_stock' => 'required|in:0,1', 'seo_title' => 'nullable|string|max:160', 'meta_description' => 'nullable|string|max:320', 'low_stock_threshold' => 'required|integer|min:0|max:10000']);
         $obsolete = [];
         unset($d['remove_hero_image'],$d['remove_logo']);
         foreach (['hero_image', 'logo'] as $key) {

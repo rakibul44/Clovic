@@ -45,7 +45,7 @@ window.trapDialogFocus = (event, dialog) => {
 };
 const initial = JSON.parse(
     document.getElementById("storefront-state")?.textContent ||
-        '{"cart":{"items":[],"count":0,"subtotal":0,"subtotal_label":"৳0"},"wishlist":[]}',
+        '{"cart":{"items":[],"count":0,"subtotal":0,"subtotal_label":"TK 0"},"wishlist":[]}',
 );
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content;
 const api = async (url, data) => {

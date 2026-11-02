@@ -43,6 +43,7 @@ class AdminAccess
         }$segment = explode('/', $path)[1] ?? 'overview';
 
         return match ($segment) {
+            'gallery' => 'content',
             'content' => match ($resource) {
                 'categories' => 'categories','coupons' => 'coupons',default => 'content'
             },'audit' => 'logs','search' => 'overview',default => $segment

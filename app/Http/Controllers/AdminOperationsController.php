@@ -12,6 +12,7 @@ use App\Models\StoreSetting;
 use App\Models\User;
 use App\Services\AdminAccess;
 use App\Services\AdminSignals;
+use App\Services\MoneyInput;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -234,7 +235,7 @@ class AdminOperationsController extends Controller
     public function shippingSettings(Request $request)
     {
         abort_unless(AdminAccess::can($request->user(), 'shipping.configure'), 403);
-        $data = $request->validate(['delivery_inside' => 'required|integer|min:0|max:1000000', 'delivery_outside' => 'required|integer|min:0|max:1000000', 'free_shipping_threshold' => 'nullable|integer|min:0|max:100000000', 'delivery_estimate' => 'nullable|string|max:500', 'courier_info' => 'nullable|string|max:500']);
+        $data = MoneyInput::validate($request, ['delivery_inside', 'delivery_outside', 'free_shipping_threshold'], ['delivery_inside' => 'required|integer|min:0|max:1000000', 'delivery_outside' => 'required|integer|min:0|max:1000000', 'free_shipping_threshold' => 'nullable|integer|min:0|max:100000000', 'delivery_estimate' => 'nullable|string|max:500', 'courier_info' => 'nullable|string|max:500']);
         foreach ($data as $key => $value) {
             StoreSetting::updateOrCreate(['key' => $key], ['value' => $value]);
         }$this->audit('shipping.settings', 'store', array_keys($data));

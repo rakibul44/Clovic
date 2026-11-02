@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\AdminAccess;
+use App\Services\Settings;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,8 +67,13 @@ class AdminReportsController extends Controller
     {
         return response()->streamDownload(function () use ($headers, $rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, $headers);
+            $moneyColumns = array_keys(array_filter($headers, fn ($header) => str_ends_with($header, '_paisa')));
+            fputcsv($out, array_map(fn ($header) => preg_replace('/_paisa$/', '_bdt', $header), $headers));
             foreach ($rows as $row) {
+                $row = array_values((array) $row);
+                foreach ($moneyColumns as $index) {
+                    $row[$index] = $row[$index] === null ? null : Settings::decimal((int) $row[$index]);
+                }
                 fputcsv($out, array_map(fn ($value) => is_string($value) && preg_match('/^[=+@\-\t\r]/', $value) ? "'".$value : $value, (array) $row));
             }fclose($out);
         }, $name, ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);

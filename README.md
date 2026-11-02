@@ -45,7 +45,7 @@ Sample products are labeled, excluded from the sitemap, and blocked from checkou
 - Editable homepage hero, navigation, announcement, brand text, featured/offers visibility, content and delivery fees
 - Server-rendered metadata, canonical links, JSON-LD, published-content sitemap and robots directives
 
-All monetary storage and business arithmetic use integer paisa (৳1 = 100). Admin price fields and CSV imports use paisa. Delivery defaults: ৳80 inside Dhaka and ৳150 outside.
+The storefront and admin display BDT amounts as TK. Enter actual taka in price, coupon and delivery fields (for example 1200.50 means TK 1,200.50). CSV exports use BDT decimal columns. Internally, storage and business arithmetic remain integer minor units to preserve exact calculations. Delivery defaults: TK 80 inside Dhaka and TK 150 outside.
 
 ## Verify
 

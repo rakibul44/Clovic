@@ -100,7 +100,7 @@ class AdminManagementTest extends TestCase
         $this->post('/cart', ['variant_id' => $v->id, 'quantity' => 1])->assertRedirect();
         $this->get('/checkout')->assertOk();
         $this->post('/checkout/quote', ['coupon' => 'SAVE'])->assertRedirect('/checkout');
-        $this->get('/checkout')->assertOk()->assertSee('৳150')->assertSee('Amount payable');
+        $this->get('/checkout')->assertOk()->assertSee('TK 150')->assertSee('Amount payable');
     }
 
     public function test_password_reset_uses_laravel_broker_and_invalidates_old_password(): void

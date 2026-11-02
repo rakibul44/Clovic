@@ -20,7 +20,7 @@ All staff receive an overview and relevant notifications. Server middleware and 
 
 Create a category, then a draft product with its real specifications and photography. Products use one primary category; categories support a parent and ordered presentation. Publish only when the category is published. Upload validated JPEG/PNG/WebP files, set alt text, image position and primary image. Variants have a unique SKU, size, color, optional color swatch, optional product-owned image, price override and separate stock.
 
-Every amount entered in admin is integer paisa: 100 means ৳1. Product sale price is the fallback; a variant override is the exact price for that variant. Cost is optional, restricted to owner/admin and snapshotted when an order is created. Historical unknown costs remain unknown.
+Enter monetary amounts in BDT TK with up to two decimal places: 1200.50 means TK 1,200.50. Price, cost, coupon and delivery inputs show taka; an existing value is converted back to taka when you reopen the form. Product sale price is the fallback; a variant override is the exact price for that variant. Cost is optional, restricted to owner/admin and snapshotted when an order is created. Historical unknown costs remain unknown.
 
 Product deletion is reversible: deleted items disappear publicly and remain in the Deleted filter. Restore returns them as drafts. Orders retain their original item snapshots. Empty categories can be deleted; move their products and children first. Inventory supports SKU/product/size/color search, stock filters, single and atomic bulk adjustments, CSV and movement history. Negative resulting stock is rejected.
 
@@ -38,7 +38,7 @@ Payments records collection/refund references only after staff verify the money 
 
 ## Coupons and customers
 
-Coupons support percentage/fixed paisa discounts, minimum subtotal, start/expiry, total usage, maximum discount, per-phone usage and product/category scope. If both scopes are set, both must match. Discounts never exceed eligible goods and are allocated only to eligible lines. The per-customer limit uses a normalized checkout phone hash; it is not identity verification. Coupon validation and redemption are serialized with database locks.
+Coupons support percentage/fixed BDT TK discounts, minimum subtotal, start/expiry, total usage, maximum discount, per-phone usage and product/category scope. If both scopes are set, both must match. Discounts never exceed eligible goods and are allocated only to eligible lines. The per-customer limit uses a normalized checkout phone hash; it is not identity verification. Coupon validation and redemption are serialized with database locks.
 
 Customer records expose account status, paid spending, order history and private service notes. Exports are audited. Guest orders remain searchable in Orders and are not invented as registered accounts.
 
@@ -63,3 +63,17 @@ Notifications derive from recent orders, cancellations/returns, low stock and de
 Follow README.md and DEPLOYMENT.md. Back up database and uploads, install locked dependencies, run `php artisan migrate --force`, `php artisan storage:link`, compile `npm run build`, and rebuild Laravel caches. The additive admin migration preserves existing products, orders, accounts and settings; no demo orders/reviews are inserted. Do not roll it back on production without a backup and reviewed data-loss plan. No Docker, permanent Node process or worker is required for the dashboard. Verify actual Hostinger PHP 8.4+ and MySQL/InnoDB support.
 
 Browser visual QA was unavailable because the saved browser policy denied localhost access. Before launch, manually check desktop/tablet/mobile navigation, form layouts, keyboard focus, charts, uploads and print documents on the actual HTTPS deployment. External services, owner policies, authentic catalog and hosting configuration still require owner setup.
+
+## Brand photo journal
+
+Open /admin/gallery (content permission) to edit, hide, order, replace or delete imported Facebook photos. Public /gallery and the homepage show published images only. Preview dimensions identify thumbnails that need replacement with originals. Historical artwork is an archive, not a current price, stock or offer promise. Contact details remain editable under Website settings.
+
+Gallery bulk actions: select individual photos or all photos on the current page. The separate “Select all photos across all pages” checkbox includes the entire gallery. Publish, Unpublish and Delete operate only on that selection, require content permission and create audit entries. Delete prompts for confirmation and removes local gallery files after the database commit.
+
+## Edit and removal actions
+
+Lists expose explicit Edit controls for catalog, content, customer records, orders and shipment records. Products use reversible deletion/restoration. Empty categories, pages, blog posts, unused coupons, reviews and gallery images support confirmed deletion. A coupon with redemption history must be disabled instead. Review editing concerns moderation and the store reply; customer wording stays original.
+
+Customer Deactivate and owner-only staff Disable revoke login while preserving accounts and history. Super Admin access remains protected. Homepage Remove hides a section and can be reversed with Enable. Order cancellations/returns and payment refunds use existing workflows; orders, payment records, inventory movements, reports and audit logs are retained. Notifications can be dismissed/marked read. Settings and SEO provide editing rather than deleting the store configuration.
+
+Currency entry and exports: current forms include an explicit BDT unit marker, and the server converts their decimal text exactly into integer minor units. Values with more than two decimal places are rejected. The original input remains on failed validation. Current product CSVs use price_bdt/sale_price_bdt and report money columns end in _bdt. Older CSVs with price/sale_price headers keep their original integer minor-unit contract for compatibility; use a fresh export when preparing a new import. Historical orders and stored prices are not rescaled.

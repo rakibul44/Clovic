@@ -3,9 +3,11 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminOperationsController;
+use App\Http\Controllers\AdminRecordController;
 use App\Http\Controllers\AdminReportsController;
 use App\Http\Controllers\AdminSiteController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BrandGalleryController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\StoreController;
@@ -50,8 +52,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/wishlist', [AccountController::class, 'wishlist']);
     Route::post('/wishlist', [AccountController::class, 'toggle']);
 });
+Route::get('/gallery', [BrandGalleryController::class, 'index']);
 Route::prefix('admin')->middleware(['auth', Admin::class, AdminPermission::class])->group(function () {
     Route::get('/', [AdminReportsController::class, 'index']);
+    Route::get('/gallery', [BrandGalleryController::class, 'admin']);
+    Route::post('/gallery/bulk', [BrandGalleryController::class, 'bulk']);
+    Route::post('/gallery/{id}', [BrandGalleryController::class, 'update']);
+    Route::post('/gallery/{id}/delete', [BrandGalleryController::class, 'delete']);
     Route::get('/reports', [AdminReportsController::class, 'index']);
     Route::get('/reports/export', [AdminReportsController::class, 'export']);
     Route::get('/reviews', [AdminController::class, 'reviews']);
@@ -102,7 +109,11 @@ Route::prefix('admin')->middleware(['auth', Admin::class, AdminPermission::class
     Route::post('/seo/redirects', [AdminSiteController::class, 'redirect']);
     Route::post('/seo/redirects/{id}/delete', [AdminSiteController::class, 'deleteRedirect']);
     Route::post('/settings/advanced', [AdminSiteController::class, 'advancedSettings']);
-    Route::post('/content/categories/{id}/delete', [AdminOperationsController::class, 'deleteCategory']);
+    Route::post('/content/{resource}/{id}/delete', [AdminRecordController::class, 'deleteContent']);
+    Route::post('/reviews/{id}/delete', [AdminRecordController::class, 'deleteReview']);
+    Route::post('/customers/{id}/status', [AdminRecordController::class, 'customerStatus']);
+    Route::post('/staff/{id}/status', [AdminRecordController::class, 'staffStatus']);
+    Route::post('/homepage/{id}/remove', [AdminRecordController::class, 'removeSection']);
     Route::get('/audit', [AdminController::class, 'audit']);
 });
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap']);

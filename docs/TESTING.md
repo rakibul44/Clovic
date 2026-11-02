@@ -48,3 +48,7 @@ Real SMTP/password-reset delivery, courier integration, electronic payments and 
 ## Admin expansion verification (2026-10-27)
 
 Executed 56 Laravel tests on SQLite and MySQL 8.4.13, including admin permissions, module rendering/exports, soft deletion/restoration, private documents, staff provisioning, category constraints, atomic stock adjustments, homepage edits, payment/shipping separation, notification read state, SEO, scoped/fixed/capped coupons, normalized-phone limits, variant/cost snapshots and free shipping. All passed. Five JavaScript component tests passed. All four isolated MySQL contention scenarios passed (last unit, duplicate checkout, once-only restock and coupon capacity). Production Vite compilation passed. Browser desktop/mobile visual checks could not run because the saved browser policy denied localhost access; rendered-page tests are not a substitute for visual QA.
+
+## BDT/TK input and display verification (2 November 2026)
+
+Executed 72 Laravel tests on MySQL (555 assertions), five JavaScript component tests and all four isolated MySQL contention scenarios; all passed. Production asset compilation passed. TakaAmountsTest checks exact product/sale/cost/variant conversion, reopening/resaving, failed-form input preservation, decimal precision rejection, fixed coupons, fees/thresholds, checkout totals, settings, product CSV round trips and BDT report exports. Stored order and price arithmetic remains in integer minor units.

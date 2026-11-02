@@ -23,3 +23,13 @@ Sign in with an admin/owner account, then:
 Removed photos fall back to the existing artwork/text branding where appropriate. Removing a photo does not delete a product or change its price, stock, or order history. The import was a one-time local action; deleting photos will not trigger automatic re-downloads.
 
 The logo/photos and their database paths are user media, not hardcoded template assets. Include `storage/app/public` and the database in backups/deployment, as described in DEPLOYMENT.md. There are no default admin credentials; use the owner setup command in README.md if an owner account has not yet been established.
+
+## Official Facebook import — 2 November 2026
+
+At the owner's request, the public [Clovic page](https://www.facebook.com/clovicbd) and its About/Photos tabs were inspected. Verified public details: phone **01818-266583**, email **clovicbd@gmail.com**, address **Sector 10, House 104, Road 12**, and description **Clovic - The modern essential**. These are saved in editable store settings and shown on Contact and the footer. No Instagram or WhatsApp account was exposed in the public About section; the seeded Instagram placeholder was removed. A mobile phone alone was not treated as proof of a WhatsApp account.
+
+56 distinct public image previews were exported through the browser's observed page assets and imported into local public storage under brand-gallery/. Facebook required sign-in during gallery exploration; a complete collection and full-size originals could not be verified. Files include small cropped thumbnails; dimensions are shown in admin. No CDN URLs are hotlinked and no expired promotion becomes a live product or coupon. The photo journal labels the archive and warns that old offers may have ended.
+
+Public: /gallery, with a six-image homepage strip and footer link. Management: /admin/gallery for owner/admin and content-authorized staff. Each photo supports alt text, caption, position, publication, replacement upload and deletion. Replacements/removals clean up the previous local gallery file after commit. Deleting a gallery photo does not alter products or stock. The import's source-key uniqueness prevents duplicate rows; there is no automatic background re-download. Source reference: https://www.facebook.com/clovicbd/photos.
+
+Back up both the database and storage/app/public/brand-gallery for deployment; these user uploads are intentionally not committed to Git. The pre-import settings snapshot and one-time import helper are in ignored .tools. To finish the collection at original resolution, the owner must sign in to Facebook or supply an original photo export. Do not fabricate file URLs or bypass Facebook access controls.

@@ -58,3 +58,7 @@ Database cache locks serialize notification attempts. External mail has unavoida
 ## Admin extensions
 
 Products are soft deleted and restored as drafts. Variant price overrides are recalculated by Cart and Checkout. Item snapshots include optional unit cost. CouponPricing applies fixed/percentage discounts to eligible product/category lines, with time, total and normalized-phone limits under the checkout coupon lock. Delivery uses the discounted subtotal for an optional free-shipping threshold. All monetary arithmetic remains integer paisa. Manual shipment records and payment references remain independent of fulfillment transitions. The additive migration does not rewrite existing orders or catalog records.
+
+## BDT presentation boundary
+
+Settings::money formats visible money as TK and Settings::decimal emits ungrouped taka decimal text. MoneyInput converts BDT-marked admin forms using integer/string arithmetic and validates a copied input array so errors do not flash converted minor units back to a taka field. Legacy unmarked internal requests and old CSV layouts retain the minor-unit contract; new CSV headers explicitly identify BDT values. Checkout, stock locks, idempotency and order snapshots keep integer minor units. Public min/max price filters also parse decimal taka exactly.

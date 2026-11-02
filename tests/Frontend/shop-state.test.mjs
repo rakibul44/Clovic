@@ -46,10 +46,10 @@ test("checkout preview uses supplied region fees and coupon amount", () => {
         discount: 24000,
     });
     assert.equal(checkout.total, 224000);
-    assert.equal(checkout.money(checkout.total), "৳2,240");
+    assert.equal(checkout.money(checkout.total), "TK 2,240");
     checkout.area = "outside";
     assert.equal(checkout.total, 231000);
-    assert.equal(checkout.money(129955), "৳1,299.55");
+    assert.equal(checkout.money(129955), "TK 1,299.55");
 });
 test("free shipping preview uses the discounted subtotal and exact threshold", () => {
     const checkout = checkoutForm({

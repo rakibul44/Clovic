@@ -58,7 +58,7 @@ export const checkoutForm = (data) => ({
     },
     money(amount) {
         return (
-            "৳" +
+            "TK " +
             (amount / 100).toLocaleString("en-BD", {
                 minimumFractionDigits: amount % 100 ? 2 : 0,
                 maximumFractionDigits: 2,
